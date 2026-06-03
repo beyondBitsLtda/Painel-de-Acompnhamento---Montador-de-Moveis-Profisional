@@ -1,0 +1,2001 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Acompanhamento de Projeto</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #050508;
+  --bg-card: rgba(14, 14, 28, 0.95);
+  --bg-card-hover: rgba(20, 20, 40, 0.98);
+  --black: #e8e8e6;
+  --white: #040406;
+
+  --copper: #bf00ff;
+  --copper-dim: rgba(191, 0, 255, 0.15);
+  --copper-glow: rgba(191, 0, 255, 0.3);
+
+  --green: #2ecc71;
+  --green-dim: rgba(46, 204, 113, 0.12);
+
+  --yellow: #f39c12;
+  --yellow-dim: rgba(243, 156, 18, 0.12);
+
+  --gray: rgba(232, 232, 230, 0.35);
+  --gray-dim: rgba(232, 232, 230, 0.06);
+  --border: rgba(232, 232, 230, 0.08);
+  --border-hover: rgba(232, 232, 230, 0.16);
+
+  --font-hero: 'Bebas Neue', cursive;
+  --font-mono: 'Space Mono', monospace;
+  --font-body: 'Rajdhani', sans-serif;
+
+  --marco-color: #2ecc71;
+  --marco-bg: rgba(46, 204, 113, 0.1);
+  --aguardando-color: rgba(232, 232, 230, 0.5);
+  --aguardando-bg: rgba(232, 232, 230, 0.05);
+  --adefinir-color: rgba(232, 232, 230, 0.35);
+  --adefinir-bg: rgba(232, 232, 230, 0.04);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  font-family: var(--font-body);
+  color: var(--black);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 9999; opacity: 0.35;
+}
+
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 50% at 70% 15%, rgba(15,20,60,0.3) 0%, transparent 65%),
+    radial-gradient(ellipse 80% 60% at 20% 80%, rgba(5,8,30,0.25) 0%, transparent 60%);
+}
+
+#loading-screen {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  z-index: 10000;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 24px;
+  transition: opacity 0.6s ease, visibility 0.6s ease;
+}
+#loading-screen.hidden { opacity: 0; visibility: hidden; }
+.loading-spinner {
+  width: 40px; height: 40px;
+  border: 2px solid var(--border);
+  border-top-color: var(--copper);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+#error-screen {
+  display: none;
+  position: fixed; inset: 0;
+  background: var(--bg);
+  z-index: 10001;
+  flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px; padding: 40px;
+  text-align: center;
+}
+#error-screen.visible { display: flex; }
+.error-icon { font-size: 2rem; opacity: 0.5; }
+.error-title {
+  font-family: var(--font-hero);
+  font-size: 1.8rem;
+  letter-spacing: 0.08em;
+  color: var(--copper);
+}
+.error-msg {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--gray);
+  max-width: 500px;
+  line-height: 1.8;
+  letter-spacing: 0.05em;
+  white-space: pre-line;
+}
+
+.site-header {
+  position: sticky; top: 0; z-index: 200;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 48px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.header-logo {
+  font-family: var(--font-hero);
+  font-size: 1.1rem;
+  letter-spacing: 0.15em;
+  color: var(--black);
+  display: flex; align-items: center; gap: 10px;
+}
+.header-logo-icon {
+  width: 28px; height: 28px;
+  background: var(--copper);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-hero);
+  font-size: 0.9rem;
+  color: #050508;
+  font-weight: 700;
+}
+.header-meta {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--gray);
+  display: flex; align-items: center; gap: 20px;
+}
+.header-meta-dot {
+  width: 6px; height: 6px;
+  background: var(--copper);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+
+.main-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 48px 80px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.main-content.visible { opacity: 1; transform: translateY(0); }
+
+.project-hero {
+  margin-bottom: 48px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid var(--border);
+}
+.project-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: 12px;
+}
+.project-title {
+  font-family: var(--font-hero);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  margin-bottom: 16px;
+}
+.project-desc {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  color: rgba(232, 232, 230, 0.55);
+  max-width: 700px;
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 48px;
+}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  transition: border-color 0.3s ease, transform 0.3s ease;
+}
+.stat-card:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+}
+.stat-value {
+  font-family: var(--font-hero);
+  font-size: 2.2rem;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.stat-value.copper { color: var(--copper); }
+.stat-value.green { color: var(--green); }
+.stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.progress-section { margin-bottom: 48px; }
+.progress-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.progress-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+.progress-pct {
+  font-family: var(--font-hero);
+  font-size: 1.4rem;
+  color: var(--copper);
+}
+.progress-track {
+  height: 6px;
+  background: var(--gray-dim);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--copper), #e8c87a);
+  border-radius: 3px;
+  transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+.progress-fill::after {
+  content: '';
+  position: absolute; right: 0; top: -2px;
+  width: 10px; height: 10px;
+  background: var(--copper);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--copper-glow);
+}
+
+.section-header {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 24px;
+}
+.section-line {
+  width: 32px; height: 2px;
+  background: var(--copper);
+}
+.section-title {
+  font-family: var(--font-hero);
+  font-size: 1.6rem;
+  letter-spacing: 0.06em;
+}
+.section-subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--gray);
+  margin-left: auto;
+}
+
+.filter-bar {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+.filter-btn {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--gray);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.filter-btn:hover { border-color: var(--border-hover); color: var(--black); }
+.filter-btn.active {
+  background: var(--copper-dim);
+  border-color: var(--copper);
+  color: var(--copper);
+}
+
+.timeline-container {
+  margin-bottom: 64px;
+  position: relative;
+}
+.timeline-scroll {
+  overflow-x: auto;
+  padding-bottom: 20px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--copper) var(--gray-dim);
+}
+.timeline-scroll::-webkit-scrollbar { height: 4px; }
+.timeline-scroll::-webkit-scrollbar-track { background: var(--gray-dim); border-radius: 2px; }
+.timeline-scroll::-webkit-scrollbar-thumb { background: var(--copper); border-radius: 2px; }
+
+.timeline-track {
+  display: flex;
+  gap: 0;
+  min-width: max-content;
+  position: relative;
+  padding: 40px 0 20px;
+}
+.timeline-track::before {
+  content: '';
+  position: absolute;
+  top: 54px; left: 20px; right: 20px;
+  height: 2px;
+  background: var(--border);
+}
+
+.sprint-block {
+  min-width: 180px;
+  flex: 1;
+  position: relative;
+  padding: 0 8px;
+}
+.sprint-marker {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  position: relative;
+  z-index: 2;
+  margin: 0 auto 16px;
+  transition: all 0.3s ease;
+}
+.sprint-marker.has-dates {
+  border-color: var(--copper);
+  background: var(--copper-dim);
+}
+.sprint-marker.has-dates::after {
+  content: '';
+  position: absolute; inset: -4px;
+  border-radius: 50%;
+  border: 1px solid var(--copper-glow);
+}
+.sprint-marker.is-marco {
+  width: 20px; height: 20px;
+  border-color: var(--marco-color);
+  background: var(--marco-bg);
+  box-shadow: 0 0 16px rgba(46, 204, 113, 0.3);
+}
+
+.sprint-label {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gray);
+  margin-bottom: 6px;
+  white-space: nowrap;
+}
+.sprint-name {
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 4px;
+}
+.sprint-dates {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--copper);
+  letter-spacing: 0.05em;
+}
+.sprint-dates.undefined {
+  color: var(--adefinir-color);
+  font-style: italic;
+}
+.sprint-count {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--gray);
+  letter-spacing: 0.1em;
+  margin-top: 6px;
+}
+
+.sprints-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  margin-bottom: 64px;
+}
+.sprint-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color 0.3s ease;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease, border-color 0.3s ease;
+}
+.sprint-section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.sprint-section:hover { border-color: var(--border-hover); }
+
+.sprint-header {
+  padding: 24px 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.3s ease;
+}
+.sprint-header:hover { background: rgba(212, 148, 74, 0.03); }
+
+.sprint-header-left {
+  display: flex; align-items: center; gap: 16px;
+}
+.sprint-number {
+  font-family: var(--font-hero);
+  font-size: 1.8rem;
+  color: var(--copper);
+  line-height: 1;
+  min-width: 48px;
+}
+.sprint-info h3 {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.sprint-info .sprint-period {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.sprint-header-right {
+  display: flex; align-items: center; gap: 16px;
+}
+.sprint-task-count {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  color: var(--gray);
+}
+.sprint-toggle {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--gray);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.7rem;
+}
+.sprint-toggle:hover { border-color: var(--copper); color: var(--copper); }
+.sprint-section.expanded .sprint-toggle { transform: rotate(180deg); }
+
+.sprint-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sprint-section.expanded .sprint-body {
+  max-height: 2000px;
+}
+
+.task-list { padding: 8px 0; }
+
+.task-item {
+  padding: 16px 28px;
+  display: grid;
+  grid-template-columns: 32px 1fr auto auto;
+  gap: 16px;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.2s ease;
+}
+.task-item:last-child { border-bottom: none; }
+.task-item:hover { background: rgba(212, 148, 74, 0.02); }
+
+.task-icon {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+.task-icon.marco {
+  background: var(--marco-bg);
+  border: 1px solid rgba(46, 204, 113, 0.3);
+  color: var(--marco-color);
+}
+.task-icon.aguardando {
+  background: var(--aguardando-bg);
+  border: 1px solid rgba(232, 232, 230, 0.1);
+  color: var(--aguardando-color);
+}
+.task-icon.adefinir {
+  background: var(--adefinir-bg);
+  border: 1px solid rgba(232, 232, 230, 0.06);
+  color: var(--adefinir-color);
+}
+
+.task-content { min-width: 0; }
+.task-name {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 3px;
+  display: flex; align-items: center; gap: 8px;
+}
+.task-name.is-marco {
+  color: var(--marco-color);
+  font-size: 1rem;
+}
+.task-desc {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: rgba(232, 232, 230, 0.4);
+  font-weight: 300;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.task-tags {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.tag {
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.tag-marco {
+  background: var(--marco-bg);
+  color: var(--marco-color);
+  border: 1px solid rgba(46, 204, 113, 0.2);
+}
+.tag-aguardando {
+  background: var(--aguardando-bg);
+  color: var(--aguardando-color);
+  border: 1px solid rgba(232, 232, 230, 0.08);
+}
+.tag-adefinir {
+  background: var(--adefinir-bg);
+  color: var(--adefinir-color);
+  border: 1px solid rgba(232, 232, 230, 0.06);
+}
+
+.task-date {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  color: var(--copper);
+  white-space: nowrap;
+  text-align: right;
+}
+.task-date.undefined {
+  color: var(--adefinir-color);
+  font-style: italic;
+}
+
+.task-item.task-complete { opacity: 0.7; }
+.task-item.task-complete:hover { opacity: 1; }
+.task-icon.complete {
+  background: var(--green-dim);
+  border: 1px solid rgba(46, 204, 113, 0.3);
+  color: var(--green);
+}
+.task-name.is-complete {
+  text-decoration: line-through;
+  text-decoration-color: rgba(46, 204, 113, 0.4);
+}
+.task-date.complete { color: var(--green); }
+.tag-complete {
+  background: var(--green-dim);
+  color: var(--green);
+  border: 1px solid rgba(46, 204, 113, 0.2);
+}
+
+.milestones-section { margin-bottom: 64px; }
+
+.milestones-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.milestone-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(46, 204, 113, 0.12);
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.milestone-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--marco-color);
+  opacity: 0.6;
+}
+.milestone-card:hover {
+  border-color: rgba(46, 204, 113, 0.25);
+  transform: translateY(-2px);
+}
+.milestone-number {
+  font-family: var(--font-hero);
+  font-size: 2rem;
+  color: var(--marco-color);
+  opacity: 0.3;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.milestone-title {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.milestone-desc {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: rgba(232, 232, 230, 0.4);
+  font-weight: 300;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.milestone-date {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-top: 12px;
+}
+.milestone-date.undefined { color: var(--adefinir-color); }
+.milestone-sprint-tag {
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gray);
+  margin-top: 6px;
+}
+
+.legend {
+  display: flex; gap: 24px; flex-wrap: wrap;
+  padding: 20px 28px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 48px;
+}
+.legend-item {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 3px;
+}
+.legend-dot.marco { background: var(--marco-color); }
+.legend-dot.aguardando { background: var(--aguardando-color); }
+.legend-dot.adefinir { background: var(--adefinir-color); }
+.legend-dot.copper { background: var(--copper); }
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding: 24px 48px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.footer-brand {
+  font-family: var(--font-hero);
+  font-size: 0.9rem;
+  letter-spacing: 0.15em;
+  color: var(--gray);
+}
+.footer-credit {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+.footer-credit a {
+  color: var(--copper);
+  text-decoration: none;
+}
+
+@media (max-width: 900px) {
+  .site-header { padding: 12px 20px; }
+  .main-content { padding: 24px 20px 60px; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-card { padding: 18px; }
+  .stat-value { font-size: 1.8rem; }
+  .task-item { grid-template-columns: 28px 1fr auto; gap: 10px; }
+  .task-tags { display: none; }
+  .milestones-grid { grid-template-columns: 1fr; }
+  .site-footer { padding: 20px; flex-direction: column; gap: 8px; }
+  .sprint-header { padding: 18px 20px; }
+  .task-item { padding: 14px 20px; }
+  .legend { padding: 16px 20px; gap: 16px; }
+}
+@media (max-width: 600px) {
+  .project-title { font-size: 2rem; }
+  .header-meta { display: none; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .sprint-number { font-size: 1.4rem; }
+}
+
+.gantt-section { margin-bottom: 64px; }
+
+.gantt-controls {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.gantt-btn {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--gray);
+  padding: 7px 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.gantt-btn:hover { border-color: var(--border-hover); color: var(--black); }
+.gantt-btn.active {
+  background: var(--copper-dim);
+  border-color: var(--copper);
+  color: var(--copper);
+}
+
+.gantt-wrapper {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.gantt-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: thin;
+  scrollbar-color: var(--copper) var(--gray-dim);
+}
+.gantt-scroll::-webkit-scrollbar { height: 5px; }
+.gantt-scroll::-webkit-scrollbar-track { background: var(--gray-dim); }
+.gantt-scroll::-webkit-scrollbar-thumb { background: var(--copper); border-radius: 3px; }
+
+.gantt-chart {
+  display: grid;
+  min-width: max-content;
+  position: relative;
+}
+
+.gantt-header { display: contents; }
+.gantt-header-months {
+  display: flex;
+  position: sticky; top: 0; z-index: 5;
+  background: rgba(8, 8, 18, 0.98);
+  border-bottom: 1px solid var(--border);
+}
+.gantt-month-cell {
+  font-family: var(--font-hero);
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  color: var(--copper);
+  padding: 14px 0 4px 12px;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+.gantt-header-weeks {
+  display: flex;
+  position: sticky; top: 38px; z-index: 5;
+  background: rgba(8, 8, 18, 0.98);
+  border-bottom: 2px solid var(--border);
+}
+.gantt-week-cell {
+  font-family: var(--font-mono);
+  font-size: 0.45rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gray);
+  text-align: center;
+  padding: 4px 0 10px;
+  border-right: 1px solid var(--gray-dim);
+}
+.gantt-week-cell.is-today {
+  color: var(--copper);
+  background: var(--copper-dim);
+}
+
+.gantt-sidebar {
+  position: sticky; left: 0; z-index: 4;
+  background: rgba(8, 8, 18, 0.98);
+  border-right: 2px solid var(--border);
+  min-width: 200px;
+  max-width: 200px;
+}
+.gantt-sidebar-header {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--gray);
+  padding: 14px 16px;
+  border-bottom: 2px solid var(--border);
+  height: 60px;
+  display: flex; align-items: flex-end;
+}
+
+.gantt-row-group {
+  display: flex;
+  min-height: 1px;
+}
+.gantt-row-sidebar {
+  position: sticky; left: 0; z-index: 3;
+  background: rgba(8, 8, 18, 0.98);
+  border-right: 2px solid var(--border);
+  min-width: 200px;
+  max-width: 200px;
+  padding: 0 10px;
+  display: flex; align-items: center;
+  border-bottom: 1px solid var(--gray-dim);
+  transition: background 0.2s ease;
+}
+.gantt-row-group:hover .gantt-row-sidebar {
+  background: rgba(14, 14, 36, 0.98);
+}
+.gantt-row-group:hover .gantt-row-bars {
+  background: rgba(212, 148, 74, 0.015);
+}
+
+.gantt-row-label {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--black);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  line-height: 1.2;
+}
+.gantt-row-label.is-marco {
+  color: var(--marco-color);
+  font-weight: 700;
+}
+.gantt-row-label.is-sprint-header {
+  font-family: var(--font-hero);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--copper);
+}
+
+.gantt-row-bars {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  position: relative;
+  height: 28px;
+  border-bottom: 1px solid var(--gray-dim);
+  transition: background 0.2s ease;
+}
+.gantt-row-bars.sprint-row {
+  height: 26px;
+  background: rgba(212, 148, 74, 0.02);
+  border-bottom: 1px solid var(--border);
+}
+
+.gantt-bar {
+  position: absolute;
+  height: 14px;
+  border-radius: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 4px;
+  transition: all 0.3s ease;
+  cursor: default;
+  z-index: 2;
+}
+.gantt-bar:hover {
+  filter: brightness(1.3);
+  transform: translateY(-50%) scaleY(1.3);
+  z-index: 10;
+}
+.gantt-bar.bar-task {
+  background: linear-gradient(90deg, var(--copper), rgba(212, 148, 74, 0.7));
+  box-shadow: 0 0 8px rgba(212, 148, 74, 0.2);
+}
+.gantt-bar.bar-complete {
+  background: linear-gradient(90deg, var(--green), rgba(46, 204, 113, 0.6));
+  box-shadow: 0 0 8px rgba(46, 204, 113, 0.2);
+}
+.gantt-bar.bar-marco {
+  background: linear-gradient(90deg, var(--marco-color), rgba(46, 204, 113, 0.7));
+  box-shadow: 0 0 10px rgba(46, 204, 113, 0.25);
+  height: 16px;
+  border-radius: 3px;
+}
+.gantt-bar.bar-sprint {
+  background: linear-gradient(90deg, rgba(212, 148, 74, 0.25), rgba(212, 148, 74, 0.08));
+  border: 1px solid rgba(212, 148, 74, 0.2);
+  height: 18px;
+  border-radius: 4px;
+}
+.gantt-bar.bar-undefined {
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(232, 232, 230, 0.04),
+    rgba(232, 232, 230, 0.04) 4px,
+    rgba(232, 232, 230, 0.08) 4px,
+    rgba(232, 232, 230, 0.08) 8px
+  );
+  border: 1px dashed rgba(232, 232, 230, 0.12);
+  height: 10px;
+}
+
+.gantt-today-line {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: var(--copper);
+  z-index: 6;
+  pointer-events: none;
+}
+.gantt-today-line::before {
+  content: 'HOJE';
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.42rem;
+  letter-spacing: 0.15em;
+  color: var(--copper);
+  white-space: nowrap;
+  background: rgba(8, 8, 18, 0.95);
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--copper);
+}
+.gantt-today-line::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: -4px;
+  width: 10px;
+  background: linear-gradient(90deg, transparent, rgba(212,148,74,0.08), transparent);
+  pointer-events: none;
+}
+
+.gantt-tooltip {
+  position: fixed;
+  z-index: 10000;
+  background: rgba(10, 10, 24, 0.97);
+  border: 1px solid var(--border-hover);
+  border-radius: 8px;
+  padding: 12px 16px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  max-width: 280px;
+  backdrop-filter: blur(12px);
+}
+.gantt-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.gantt-tooltip-title {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 4px;
+}
+.gantt-tooltip-date {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  color: var(--copper);
+}
+.gantt-tooltip-desc {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--gray);
+  margin-top: 6px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.gantt-tooltip-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.42rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 3px;
+  margin-top: 6px;
+}
+
+.gantt-legend {
+  display: flex; gap: 20px; flex-wrap: wrap;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  background: rgba(8, 8, 18, 0.5);
+}
+.gantt-legend-item {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+.gantt-legend-bar {
+  width: 24px; height: 8px;
+  border-radius: 3px;
+}
+.gantt-legend-bar.bar-task { background: linear-gradient(90deg, var(--copper), rgba(212,148,74,0.7)); }
+.gantt-legend-bar.bar-complete { background: linear-gradient(90deg, var(--green), rgba(46,204,113,0.6)); }
+.gantt-legend-bar.bar-marco { background: linear-gradient(90deg, var(--marco-color), rgba(46,204,113,0.7)); }
+.gantt-legend-bar.bar-sprint { background: rgba(212,148,74,0.2); border: 1px solid rgba(212,148,74,0.3); }
+.gantt-legend-bar.bar-undefined {
+  background: repeating-linear-gradient(-45deg, rgba(232,232,230,0.06), rgba(232,232,230,0.06) 3px, rgba(232,232,230,0.12) 3px, rgba(232,232,230,0.12) 6px);
+  border: 1px dashed rgba(232,232,230,0.15);
+}
+.gantt-legend-bar.bar-today {
+  width: 2px; height: 14px;
+  background: var(--copper);
+  border-radius: 1px;
+}
+
+@media (max-width: 900px) {
+  .gantt-row-sidebar, .gantt-sidebar { min-width: 140px; max-width: 140px; }
+  .gantt-row-label { max-width: 120px; font-size: 0.65rem; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-in {
+  opacity: 0;
+  transform: translateY(16px);
+}
+.animate-in.visible {
+  animation: fadeInUp 0.6s ease forwards;
+}
+</style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Carregando projeto...</div>
+</div>
+
+<div id="error-screen">
+  <div class="error-icon">⚠</div>
+  <div class="error-title">ERRO AO CARREGAR</div>
+  <div class="error-msg" id="error-msg">Não foi possível carregar os dados do projeto.</div>
+</div>
+
+<header class="site-header">
+  <div class="header-logo" id="header-brand">
+    <!-- preenchido via CONFIG.brand.name -->
+  </div>
+  <div class="header-meta">
+    <span id="header-subtitle"></span>
+    <span id="data-source" style="font-size:0.45rem;opacity:0.5;"></span>
+    <div class="header-meta-dot"></div>
+    <span id="header-date"></span>
+  </div>
+</header>
+
+<main class="main-content" id="main-content">
+  <section class="project-hero">
+    <div class="project-eyebrow" id="project-eyebrow"></div>
+    <h1 class="project-title" id="project-title"></h1>
+    <p class="project-desc" id="project-desc"></p>
+  </section>
+
+  <div class="stats-grid" id="stats-grid"></div>
+
+  <section class="progress-section">
+    <div class="progress-header">
+      <span class="progress-label">Progresso geral do projeto</span>
+      <span class="progress-pct" id="progress-pct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+    </div>
+  </section>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green);"></div> Concluído</div>
+    <div class="legend-item"><div class="legend-dot marco"></div> Marco</div>
+    <div class="legend-item"><div class="legend-dot aguardando"></div> Aguardando</div>
+    <div class="legend-item"><div class="legend-dot adefinir"></div> A definir</div>
+    <div class="legend-item"><div class="legend-dot copper"></div> Data prevista</div>
+  </div>
+
+  <section class="timeline-container animate-in">
+    <div class="section-header">
+      <div class="section-line"></div>
+      <h2 class="section-title">CRONOGRAMA</h2>
+      <span class="section-subtitle">Visão geral das entregas</span>
+    </div>
+    <div class="timeline-scroll">
+      <div class="timeline-track" id="timeline-track"></div>
+    </div>
+  </section>
+
+  <section class="gantt-section animate-in">
+    <div class="section-header">
+      <div class="section-line"></div>
+      <h2 class="section-title">GRÁFICO DE GANTT</h2>
+      <span class="section-subtitle">Cronograma em barras</span>
+    </div>
+    <div class="gantt-controls" id="gantt-controls">
+      <button class="gantt-btn active" data-view="tasks">Todas as tarefas</button>
+      <button class="gantt-btn" data-view="sprints">Sprints agrupados</button>
+      <button class="gantt-btn" data-view="marcos">Somente marcos</button>
+    </div>
+    <div class="gantt-wrapper">
+      <div class="gantt-scroll" id="gantt-scroll">
+        <div id="gantt-chart"></div>
+      </div>
+      <div class="gantt-legend">
+        <div class="gantt-legend-item"><div class="gantt-legend-bar bar-task"></div> Tarefa</div>
+        <div class="gantt-legend-item"><div class="gantt-legend-bar bar-complete"></div> Concluído</div>
+        <div class="gantt-legend-item"><div class="gantt-legend-bar bar-marco"></div> Marco</div>
+        <div class="gantt-legend-item"><div class="gantt-legend-bar bar-sprint"></div> Sprint</div>
+        <div class="gantt-legend-item"><div class="gantt-legend-bar bar-undefined"></div> A definir</div>
+        <div class="gantt-legend-item"><div class="gantt-legend-bar bar-today"></div> Hoje</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="gantt-tooltip" id="gantt-tooltip">
+    <div class="gantt-tooltip-title" id="tt-title"></div>
+    <div class="gantt-tooltip-date" id="tt-date"></div>
+    <div class="gantt-tooltip-desc" id="tt-desc"></div>
+    <div class="gantt-tooltip-tag" id="tt-tag"></div>
+  </div>
+
+  <section class="milestones-section animate-in" id="milestones-section">
+    <div class="section-header">
+      <div class="section-line"></div>
+      <h2 class="section-title">MARCOS DO PROJETO</h2>
+      <span class="section-subtitle" id="milestone-count"></span>
+    </div>
+    <div class="milestones-grid" id="milestones-grid"></div>
+  </section>
+
+  <section class="animate-in">
+    <div class="section-header">
+      <div class="section-line"></div>
+      <h2 class="section-title" id="sprints-title">DETALHAMENTO POR SPRINT</h2>
+      <span class="section-subtitle" id="total-tasks"></span>
+    </div>
+    <div class="filter-bar" id="filter-bar"></div>
+    <div class="sprints-grid" id="sprints-grid"></div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-brand" id="footer-brand"></div>
+  <div class="footer-credit" id="footer-credit"></div>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   ÚNICA SEÇÃO QUE VOCÊ PRECISA EDITAR PARA USAR EM OUTRO QUADRO
+   ═══════════════════════════════════════════════════════════════════════════
+
+   1. Cole suas credenciais Trello em CONFIG.trello (gere em https://trello.com/power-ups/admin)
+   2. Coloque o ID curto do quadro em CONFIG.trello.boardId (da URL do Trello)
+   3. Ajuste CONFIG.lists para casar com a nomenclatura das suas listas
+   4. Ajuste CONFIG.labels com os nomes EXATOS das suas labels (ou deixe vazio)
+   5. Personalize CONFIG.project com título, descrição e marca
+
+   Nada mais no código precisa ser tocado.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const CONFIG = {
+  // ─── Credenciais Trello ───
+  // ⚠ Você precisa GERAR esses dois (instruções no final deste arquivo de instruções)
+  trello: {
+    apiKey: 'a70ac6cdf4a0479e97acf7d5976362d3',
+    token: 'ATTA52739b85baef2ee0dd5bccea18da6df885e1d6E436b8aff2165b737050ac80ab372D3C95',
+    boardId: 'fkMBAQh2',         // ← já preenchido (extraído da URL do quadro)
+  },
+
+  // ─── Fallback (opcional) ───
+  jsonFallbackUrl: null,
+
+  // ─── Identificação de listas como "fases" ───
+  // Quadro tem listas tipo "Fase 1 - Setup...", "Fase 2: Desenvolvimento...", etc.
+  lists: {
+    sprintPrefix: 'Fase',
+    // Limpa "Fase 1 - ", "Fase 2: ", "Fase 3: " etc. do título exibido
+    sprintNameCleanRegex: /^Fase \d+[\s:\-]+/,
+    excludedListNames: [],
+  },
+
+  // ─── Labels especiais ───
+  // Neste quadro cada marco tem sua própria label numerada (Marco 01, Marco 02...)
+  // — não há uma label genérica "MARCO". Por isso usamos marcoLabelRegex.
+  labels: {
+    marcoName: '',                          // não há label fixa "MARCO"
+    marcoLabelRegex: /^marco\s*\d+/i,       // pega "Marco 01", "Marco 02", "Marco 03", "Marco 04"
+    marcoNameRegex: null,                   // nomes dos cards não começam com "Marco"
+    waitingName: 'AGUARDANDO',              // existe nesse quadro
+    tbdName: '',                            // não existe nesse quadro
+  },
+
+  // ─── Cards a ignorar ───
+  excludedCardNames: [],
+
+  // ─── Textos do projeto ───
+  project: {
+    titleOverride: '',  // vazio = usa o nome do quadro do Trello
+    eyebrow: 'Site profissional — Montador de Móveis',
+    description: 'Acompanhe em tempo real o progresso do desenvolvimento do site. ' +
+                 'Cada fase representa uma etapa do projeto, com marcos que indicam entregas importantes.',
+    sprintWordSingular: 'Fase',
+    sprintWordPlural: 'Fases',
+  },
+
+  // ─── Marca / branding ───
+  // ⚠ Personalize com sua marca / agência
+  brand: {
+    name: 'BEYOND BITS',
+    headerSubtitle: 'PAINEL DO CLIENTE',
+    footerCreditText: 'Desenvolvido por',
+    footerCreditUrl: 'https://beyond.dev.br',
+    footerCreditLabel: 'beyond.dev.br',
+  },
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIM DA CONFIGURAÇÃO — daqui pra baixo não precisa mexer
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+// ─── UTILS ───
+function formatDate(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+function formatDateShort(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+}
+function getCardLabel(card) {
+  if (isMarco(card)) return 'marco';
+  if (!card.labels || !card.labels.length) return null;
+  for (const l of card.labels) {
+    if (CONFIG.labels.waitingName && l.name === CONFIG.labels.waitingName) return 'aguardando';
+    if (CONFIG.labels.tbdName && l.name === CONFIG.labels.tbdName) return 'adefinir';
+  }
+  return null;
+}
+function isMarco(card) {
+  const byLabel = CONFIG.labels.marcoName
+    && card.labels
+    && card.labels.some(l => l.name === CONFIG.labels.marcoName);
+  const byLabelRegex = CONFIG.labels.marcoLabelRegex
+    && card.labels
+    && card.labels.some(l => l.name && CONFIG.labels.marcoLabelRegex.test(l.name));
+  const byName = CONFIG.labels.marcoNameRegex
+    && CONFIG.labels.marcoNameRegex.test((card.name || '').trim());
+  return Boolean(byLabel || byLabelRegex || byName);
+}
+function stripMarkdown(str) {
+  if (!str) return '';
+  return str.replace(/\*\*/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[#_~`]/g, '');
+}
+
+// ─── BOOT ───
+async function init() {
+  const loadingEl = document.getElementById('loading-screen');
+  const loadingText = loadingEl.querySelector('.loading-text');
+  const errorEl = document.getElementById('error-screen');
+  const errorMsg = document.getElementById('error-msg');
+
+  // Aplicar branding antes mesmo de carregar dados
+  applyBranding();
+
+  let data = null;
+
+  // ── TENTATIVA 1: API ao vivo ──
+  const apiConfigured = CONFIG.trello.apiKey
+    && CONFIG.trello.token
+    && CONFIG.trello.boardId
+    && CONFIG.trello.apiKey !== 'SUA_API_KEY_AQUI'
+    && CONFIG.trello.token !== 'SEU_TOKEN_AQUI';
+
+  if (apiConfigured) {
+    loadingText.textContent = 'Conectando ao Trello...';
+    try {
+      const baseUrl = 'https://api.trello.com/1/boards/' + CONFIG.trello.boardId;
+      const auth = 'key=' + CONFIG.trello.apiKey + '&token=' + CONFIG.trello.token;
+
+      const [boardResp, listsResp, cardsResp, labelsResp] = await Promise.all([
+        fetch(baseUrl + '?' + auth + '&fields=name,desc,url,shortUrl,dateLastActivity,labelNames'),
+        fetch(baseUrl + '/lists?' + auth + '&fields=name,pos,closed&filter=open'),
+        fetch(baseUrl + '/cards?' + auth + '&fields=name,desc,due,dueComplete,idList,labels,pos,shortUrl,url&filter=open'),
+        fetch(baseUrl + '/labels?' + auth + '&fields=name,color'),
+      ]);
+
+      if (!boardResp.ok) throw new Error('API Trello: ' + boardResp.status + ' ' + boardResp.statusText);
+
+      const board = await boardResp.json();
+      const lists = await listsResp.json();
+      const cards = await cardsResp.json();
+      const labels = await labelsResp.json();
+
+      data = {
+        name: board.name,
+        desc: board.desc,
+        url: board.url,
+        shortUrl: board.shortUrl,
+        dateLastActivity: board.dateLastActivity,
+        lists: lists.sort((a, b) => a.pos - b.pos),
+        cards: cards,
+        labels: labels,
+      };
+
+      console.log('✅ Dados carregados da API do Trello ao vivo');
+      console.log('   Cards:', cards.length, '| Lists:', lists.length);
+    } catch (err) {
+      console.warn('⚠ Falha na API do Trello:', err.message);
+      data = null;
+    }
+  }
+
+  // ── TENTATIVA 2: JSON externo (fallback) ──
+  if (!data && CONFIG.jsonFallbackUrl) {
+    loadingText.textContent = 'Buscando JSON local...';
+    try {
+      const resp = await fetch(CONFIG.jsonFallbackUrl);
+      if (resp.ok) {
+        data = await resp.json();
+        console.log('📄 Usando JSON externo:', CONFIG.jsonFallbackUrl);
+      }
+    } catch (e) { data = null; }
+  }
+
+  // ── SEM DADOS ──
+  if (!data) {
+    loadingEl.classList.add('hidden');
+    errorMsg.textContent = 'Não foi possível carregar os dados do projeto.\n\n'
+      + 'Verifique CONFIG.trello (apiKey, token, boardId) no início do arquivo, '
+      + 'ou configure CONFIG.jsonFallbackUrl apontando para um JSON exportado do Trello.';
+    errorEl.classList.add('visible');
+    return;
+  }
+
+  // ── RENDERIZAR ──
+  try {
+    renderBoard(data);
+    loadingEl.classList.add('hidden');
+    setTimeout(() => {
+      document.getElementById('main-content').classList.add('visible');
+      initScrollObserver();
+    }, 100);
+  } catch (err) {
+    loadingEl.classList.add('hidden');
+    errorMsg.textContent = 'Erro ao renderizar: ' + err.message;
+    errorEl.classList.add('visible');
+    console.error(err);
+  }
+}
+
+// ─── BRANDING ───
+function applyBranding() {
+  document.getElementById('header-brand').textContent = CONFIG.brand.name;
+  document.getElementById('header-subtitle').textContent = CONFIG.brand.headerSubtitle;
+  document.getElementById('footer-brand').textContent = CONFIG.brand.name;
+
+  const credit = document.getElementById('footer-credit');
+  if (CONFIG.brand.footerCreditUrl) {
+    credit.innerHTML = CONFIG.brand.footerCreditText
+      + ' <a href="' + CONFIG.brand.footerCreditUrl + '" target="_blank">'
+      + CONFIG.brand.footerCreditLabel + '</a>';
+  } else {
+    credit.textContent = CONFIG.brand.footerCreditText;
+  }
+
+  document.getElementById('project-eyebrow').textContent = CONFIG.project.eyebrow;
+
+  // Título do bloco "DETALHAMENTO POR SPRINT" troca a palavra
+  document.getElementById('sprints-title').textContent =
+    'DETALHAMENTO POR ' + CONFIG.project.sprintWordSingular.toUpperCase();
+}
+
+// ─── HELPERS DE LISTA ───
+function getSprintLists(allLists) {
+  const prefix = CONFIG.lists.sprintPrefix || '';
+  const excluded = new Set(CONFIG.lists.excludedListNames || []);
+
+  return allLists.filter(l => {
+    if (excluded.has(l.name)) return false;
+    if (prefix && !l.name.startsWith(prefix)) return false;
+    return true;
+  });
+}
+
+function cleanSprintName(name) {
+  if (!CONFIG.lists.sprintNameCleanRegex) return name;
+  return name.replace(CONFIG.lists.sprintNameCleanRegex, '').trim() || name;
+}
+
+function isCardExcluded(card) {
+  return (CONFIG.excludedCardNames || []).includes(card.name);
+}
+
+// ─── RENDERIZAÇÃO PRINCIPAL ───
+function renderBoard(data) {
+  // Indicador de fonte
+  const srcEl = document.getElementById('data-source');
+  if (srcEl) {
+    const isLive = CONFIG.trello.apiKey && CONFIG.trello.apiKey !== 'SUA_API_KEY_AQUI';
+    srcEl.textContent = isLive ? '● AO VIVO' : '○ OFFLINE';
+    srcEl.style.color = isLive ? '#2ecc71' : 'rgba(232,232,230,0.3)';
+  }
+
+  document.getElementById('header-date').textContent =
+    new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase();
+
+  // Título do projeto
+  const projectTitle = CONFIG.project.titleOverride || data.name || 'Projeto';
+  document.getElementById('project-title').textContent = projectTitle;
+  document.getElementById('project-desc').textContent = CONFIG.project.description;
+
+  // Mapas
+  const listsMap = {};
+  const listsOrder = [];
+  (data.lists || []).forEach(l => {
+    listsMap[l.id] = l;
+    listsOrder.push(l);
+  });
+
+  // Cards por lista
+  const cardsByList = {};
+  (data.cards || []).forEach(c => {
+    if (!cardsByList[c.idList]) cardsByList[c.idList] = [];
+    cardsByList[c.idList].push(c);
+  });
+
+  // Ordenar por data dentro de cada lista
+  for (const listId in cardsByList) {
+    cardsByList[listId].sort((a, b) => {
+      if (!a.due && !b.due) return 0;
+      if (!a.due) return 1;
+      if (!b.due) return -1;
+      return new Date(a.due) - new Date(b.due);
+    });
+  }
+
+  // Filtros
+  const allCards = data.cards || [];
+  const projectCards = allCards.filter(c => !isCardExcluded(c));
+  const marcos = projectCards.filter(c => isMarco(c));
+  const sprintLists = getSprintLists(listsOrder);
+  const totalSprints = sprintLists.length;
+
+  // Progresso
+  const now = new Date();
+  const completedCount = projectCards.filter(c => c.dueComplete === true).length;
+  const useDateFallback = completedCount === 0 && projectCards.some(c => c.due);
+  const fallbackCompleted = useDateFallback
+    ? projectCards.filter(c => c.due && new Date(c.due) < now).length
+    : completedCount;
+  const progressPct = projectCards.length > 0
+    ? Math.round((fallbackCompleted / projectCards.length) * 100)
+    : 0;
+
+  // Stats
+  const statsGrid = document.getElementById('stats-grid');
+  const sprintLabel = CONFIG.project.sprintWordPlural;
+  const stats = [
+    { value: totalSprints, label: sprintLabel, cls: 'copper' },
+    { value: projectCards.length, label: 'Total de itens', cls: '' },
+    { value: fallbackCompleted, label: 'Concluídos', cls: 'green' },
+    { value: marcos.length, label: 'Marcos', cls: 'copper' },
+    { value: projectCards.length - fallbackCompleted, label: 'Pendentes', cls: '' },
+  ];
+  statsGrid.innerHTML = stats.map(s => `
+    <div class="stat-card">
+      <div class="stat-value ${s.cls}">${s.value}</div>
+      <div class="stat-label">${s.label}</div>
+    </div>
+  `).join('');
+
+  // Barra de progresso
+  document.getElementById('progress-pct').textContent = progressPct + '%';
+  setTimeout(() => {
+    document.getElementById('progress-fill').style.width = progressPct + '%';
+  }, 600);
+
+  // Timeline
+  const timelineTrack = document.getElementById('timeline-track');
+  timelineTrack.innerHTML = '';
+  sprintLists.forEach((list, i) => {
+    const cards = (cardsByList[list.id] || []).filter(c => !isCardExcluded(c));
+    const hasDates = cards.some(c => c.due);
+    const hasMarco = cards.some(c => isMarco(c));
+    const dates = cards.filter(c => c.due).map(c => new Date(c.due));
+    let dateRange = '';
+    let isUndefined = false;
+    if (dates.length > 0) {
+      const minD = new Date(Math.min(...dates));
+      const maxD = new Date(Math.max(...dates));
+      dateRange = `${formatDateShort(minD)} — ${formatDateShort(maxD)}`;
+    } else {
+      dateRange = 'A DEFINIR';
+      isUndefined = true;
+    }
+
+    const sprintNum = i + 1;
+    const cleanName = cleanSprintName(list.name);
+    const block = document.createElement('div');
+    block.className = 'sprint-block';
+    block.innerHTML = `
+      <div class="sprint-marker ${hasDates ? 'has-dates' : ''} ${hasMarco ? 'is-marco' : ''}"></div>
+      <div class="sprint-label">${CONFIG.project.sprintWordSingular} ${String(sprintNum).padStart(2, '0')}</div>
+      <div class="sprint-name">${cleanName}</div>
+      <div class="sprint-dates ${isUndefined ? 'undefined' : ''}">${dateRange}</div>
+      <div class="sprint-count">${cards.length} itens</div>
+    `;
+    timelineTrack.appendChild(block);
+  });
+
+  // Marcos
+  const milestonesSection = document.getElementById('milestones-section');
+  const milestonesGrid = document.getElementById('milestones-grid');
+  if (marcos.length === 0) {
+    milestonesSection.style.display = 'none';
+  } else {
+    document.getElementById('milestone-count').textContent = `${marcos.length} marcos`;
+    milestonesGrid.innerHTML = marcos.map((c, i) => {
+      const listName = listsMap[c.idList] ? listsMap[c.idList].name : '';
+      const desc = stripMarkdown(c.desc);
+      const dateStr = c.due ? formatDate(c.due) : 'A definir';
+      return `
+        <div class="milestone-card">
+          <div class="milestone-number">${String(i + 1).padStart(2, '0')}</div>
+          <div class="milestone-title">${c.name || 'Marco ' + (i+1)}</div>
+          <div class="milestone-desc">${desc}</div>
+          <div class="milestone-date ${c.due ? '' : 'undefined'}">${dateStr}</div>
+          <div class="milestone-sprint-tag">${listName}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Filtros
+  const filterBar = document.getElementById('filter-bar');
+  filterBar.innerHTML = `
+    <button class="filter-btn active" data-filter="all">Todos</button>
+    <button class="filter-btn" data-filter="complete">Concluídos</button>
+    <button class="filter-btn" data-filter="marco">Marcos</button>
+    <button class="filter-btn" data-filter="aguardando">Aguardando</button>
+    <button class="filter-btn" data-filter="adefinir">A definir</button>
+  `;
+  filterBar.addEventListener('click', e => {
+    if (!e.target.classList.contains('filter-btn')) return;
+    filterBar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    filterSprints(e.target.dataset.filter);
+  });
+
+  // Sprints
+  const sprintsGrid = document.getElementById('sprints-grid');
+  document.getElementById('total-tasks').textContent = `${projectCards.length} itens total`;
+
+  sprintLists.forEach((list, i) => {
+    const cards = (cardsByList[list.id] || []).filter(c => !isCardExcluded(c));
+    if (cards.length === 0) return;
+    const sprintNum = i + 1;
+    const section = document.createElement('div');
+    section.className = 'sprint-section';
+    section.dataset.sprint = sprintNum;
+
+    const dates = cards.filter(c => c.due).map(c => new Date(c.due));
+    let period = 'Datas a definir';
+    if (dates.length > 0) {
+      const minD = formatDate(new Date(Math.min(...dates)));
+      const maxD = formatDate(new Date(Math.max(...dates)));
+      period = `${minD} — ${maxD}`;
+    }
+
+    section.innerHTML = `
+      <div class="sprint-header" onclick="this.parentElement.classList.toggle('expanded')">
+        <div class="sprint-header-left">
+          <div class="sprint-number">${String(sprintNum).padStart(2, '0')}</div>
+          <div class="sprint-info">
+            <h3>${list.name}</h3>
+            <div class="sprint-period">${period}</div>
+          </div>
+        </div>
+        <div class="sprint-header-right">
+          <div class="sprint-task-count">${cards.length} itens</div>
+          <div class="sprint-toggle">▼</div>
+        </div>
+      </div>
+      <div class="sprint-body">
+        <div class="task-list">
+          ${cards.map(card => renderTaskItem(card)).join('')}
+        </div>
+      </div>
+    `;
+    sprintsGrid.appendChild(section);
+  });
+
+  // Auto-expandir o primeiro sprint
+  const firstSprint = sprintsGrid.querySelector('.sprint-section');
+  if (firstSprint) firstSprint.classList.add('expanded');
+
+  // Gantt
+  renderGantt(sprintLists, cardsByList, listsMap, 'tasks');
+
+  const ganttControls = document.getElementById('gantt-controls');
+  ganttControls.addEventListener('click', e => {
+    if (!e.target.classList.contains('gantt-btn')) return;
+    ganttControls.querySelectorAll('.gantt-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    renderGantt(sprintLists, cardsByList, listsMap, e.target.dataset.view);
+  });
+}
+
+// ─── GANTT ───
+function renderGantt(sprintLists, cardsByList, listsMap, viewMode) {
+  const container = document.getElementById('gantt-chart');
+  container.innerHTML = '';
+
+  const DAY_WIDTH = 22;
+  const ROW_HEIGHT = 28;
+  const SPRINT_ROW_HEIGHT = 26;
+  const HEADER_HEIGHT = 60;
+  const SIDEBAR_W = 200;
+
+  const allDates = [];
+  sprintLists.forEach(list => {
+    ((cardsByList[list.id] || []).filter(c => !isCardExcluded(c))).forEach(c => {
+      if (c.due) allDates.push(new Date(c.due));
+    });
+  });
+
+  if (allDates.length === 0) {
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--gray);font-family:var(--font-mono);font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;">Nenhuma data definida ainda</div>';
+    return;
+  }
+
+  const minDate = new Date(Math.min(...allDates));
+  const maxDate = new Date(Math.max(...allDates));
+
+  const rangeStart = new Date(minDate);
+  rangeStart.setDate(rangeStart.getDate() - 5);
+  rangeStart.setDate(rangeStart.getDate() - rangeStart.getDay());
+
+  const rangeEnd = new Date(maxDate);
+  rangeEnd.setDate(rangeEnd.getDate() + 5);
+  rangeEnd.setDate(rangeEnd.getDate() + (6 - rangeEnd.getDay()));
+
+  const totalDays = Math.ceil((rangeEnd - rangeStart) / (1000 * 60 * 60 * 24)) + 1;
+
+  function dayOffset(date) {
+    return Math.floor((date - rangeStart) / (1000 * 60 * 60 * 24));
+  }
+
+  const rows = [];
+  sprintLists.forEach((list) => {
+    const cards = (cardsByList[list.id] || []).filter(c => !isCardExcluded(c));
+    const sprintDates = cards.filter(c => c.due).map(c => new Date(c.due));
+    let sprintStart, sprintEnd;
+    const hasDates = sprintDates.length > 0;
+
+    if (hasDates) {
+      sprintStart = new Date(Math.min(...sprintDates));
+      sprintEnd = new Date(Math.max(...sprintDates));
+    } else {
+      sprintStart = null;
+      sprintEnd = null;
+    }
+
+    if (viewMode === 'sprints' || viewMode === 'tasks') {
+      rows.push({ type:'sprint', label:list.name, start:sprintStart, end:sprintEnd, hasDates, listName:list.name });
+    }
+
+    if (viewMode === 'tasks') {
+      cards.forEach(card => {
+        const isMrc = isMarco(card);
+        rows.push({ type:isMrc?'marco':'task', label:card.name, start:card.due?new Date(card.due):null, end:card.due?new Date(card.due):null, hasDates:!!card.due, card, listName:list.name, sprintStart, sprintEnd, complete:card.dueComplete===true });
+      });
+    }
+
+    if (viewMode === 'marcos') {
+      cards.filter(c => isMarco(c)).forEach(card => {
+        const cleanLn = cleanSprintName(list.name);
+        rows.push({ type:'marco', label:card.name+' \u2014 '+cleanLn, start:card.due?new Date(card.due):null, end:card.due?new Date(card.due):null, hasDates:!!card.due, card, listName:list.name, sprintStart, sprintEnd });
+      });
+    }
+  });
+
+  const months = [];
+  let cursor = new Date(rangeStart);
+  while (cursor <= rangeEnd) {
+    const monthKey = cursor.getFullYear()+'-'+cursor.getMonth();
+    if (!months.length || months[months.length-1].key !== monthKey) {
+      months.push({ key:monthKey, label:cursor.toLocaleDateString('pt-BR',{month:'short',year:'numeric'}).toUpperCase(), days:0 });
+    }
+    months[months.length-1].days++;
+    cursor.setDate(cursor.getDate()+1);
+  }
+
+  const weeks = [];
+  cursor = new Date(rangeStart);
+  let weekStart = new Date(cursor);
+  let weekDays = 0;
+  const now = new Date(); now.setHours(0,0,0,0);
+  while (cursor <= rangeEnd) {
+    weekDays++;
+    const nextDay = new Date(cursor); nextDay.setDate(nextDay.getDate()+1);
+    if (cursor.getDay()===6 || nextDay>rangeEnd) {
+      const ws = new Date(weekStart);
+      weeks.push({ label:ws.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}), days:weekDays, isToday:now>=ws&&now<=cursor });
+      weekStart = new Date(nextDay); weekDays = 0;
+    }
+    cursor = nextDay;
+  }
+
+  const barsAreaWidth = totalDays * DAY_WIDTH;
+  let html = '';
+
+  html += '<div style="display:flex;">';
+  html += '<div class="gantt-sidebar-header" style="min-width:'+SIDEBAR_W+'px;max-width:'+SIDEBAR_W+'px;height:'+HEADER_HEIGHT+'px;">Tarefa</div>';
+  html += '<div style="display:flex;flex-direction:column;width:'+barsAreaWidth+'px;">';
+  html += '<div style="display:flex;">';
+  months.forEach(m => { html += '<div class="gantt-month-cell" style="width:'+(m.days*DAY_WIDTH)+'px;">'+m.label+'</div>'; });
+  html += '</div><div style="display:flex;">';
+  weeks.forEach(w => { html += '<div class="gantt-week-cell '+(w.isToday?'is-today':'')+'" style="width:'+(w.days*DAY_WIDTH)+'px;">'+w.label+'</div>'; });
+  html += '</div></div></div>';
+
+  html += '<div style="position:relative;">';
+  rows.forEach(row => {
+    const isSprint = row.type==='sprint';
+    const isMarcoRow = row.type==='marco';
+    const rowH = isSprint ? SPRINT_ROW_HEIGHT : ROW_HEIGHT;
+    const labelClass = isMarcoRow?'is-marco':(isSprint?'is-sprint-header':'');
+
+    html += '<div class="gantt-row-group" style="height:'+rowH+'px;">';
+    html += '<div class="gantt-row-sidebar" style="height:'+rowH+'px;min-width:'+SIDEBAR_W+'px;max-width:'+SIDEBAR_W+'px;">';
+    html += '<div class="gantt-row-label '+labelClass+'" title="'+escAttr(row.label)+'">'+row.label+'</div>';
+    html += '</div>';
+
+    const barsClass = isSprint?'gantt-row-bars sprint-row':'gantt-row-bars';
+    html += '<div class="'+barsClass+'" style="width:'+barsAreaWidth+'px;height:'+rowH+'px;position:relative;">';
+
+    if (row.hasDates && row.start && row.end) {
+      const startOff = dayOffset(row.start);
+      const endOff = dayOffset(row.end);
+      const barLeft = startOff * DAY_WIDTH;
+      const barWidth = Math.max((endOff-startOff+1)*DAY_WIDTH, DAY_WIDTH*0.6);
+      let barClass = 'gantt-bar ';
+      if (isSprint) barClass += 'bar-sprint';
+      else if (isMarcoRow) barClass += 'bar-marco';
+      else if (row.complete) barClass += 'bar-complete';
+      else barClass += 'bar-task';
+      const ttData = row.card
+        ? 'data-tt-name="'+escAttr(row.card.name)+'" data-tt-date="'+(row.card.due?formatDate(row.card.due):'A definir')+'" data-tt-desc="'+escAttr(stripMarkdown(row.card.desc||''))+'" data-tt-tag="'+escAttr(getCardLabel(row.card)||'')+'" data-tt-list="'+escAttr(row.listName)+'"'
+        : 'data-tt-name="'+escAttr(row.label)+'" data-tt-date="'+formatDate(row.start)+' \u2014 '+formatDate(row.end)+'" data-tt-desc="" data-tt-tag="" data-tt-list=""';
+      html += '<div class="'+barClass+'" style="left:'+barLeft+'px;width:'+barWidth+'px;" '+ttData+'></div>';
+    } else if (!row.hasDates && isSprint) {
+      html += '<div class="gantt-bar bar-undefined" style="left:'+(barsAreaWidth-DAY_WIDTH*6)+'px;width:'+(DAY_WIDTH*5)+'px;" data-tt-name="'+escAttr(row.label)+'" data-tt-date="Datas a definir" data-tt-desc="" data-tt-tag="A DEFINIR" data-tt-list=""></div>';
+    } else if (!row.hasDates && row.sprintStart && row.sprintEnd) {
+      const startOff = dayOffset(row.sprintStart);
+      const endOff = dayOffset(row.sprintEnd);
+      const barLeft = startOff * DAY_WIDTH;
+      const barWidth = Math.max((endOff-startOff+1)*DAY_WIDTH, DAY_WIDTH*2);
+      const ttData = row.card ? 'data-tt-name="'+escAttr(row.card.name)+'" data-tt-date="A definir" data-tt-desc="'+escAttr(stripMarkdown(row.card.desc||''))+'" data-tt-tag="A DEFINIR" data-tt-list="'+escAttr(row.listName)+'"' : '';
+      html += '<div class="gantt-bar bar-undefined" style="left:'+barLeft+'px;width:'+barWidth+'px;" '+ttData+'></div>';
+    }
+
+    html += '</div></div>';
+  });
+
+  const todayOff = dayOffset(now);
+  if (todayOff >= 0 && todayOff <= totalDays) {
+    html += '<div class="gantt-today-line" style="left:'+(SIDEBAR_W+todayOff*DAY_WIDTH)+'px;top:0;height:100%;position:absolute;"></div>';
+  }
+  html += '</div>';
+
+  container.style.width = (barsAreaWidth + SIDEBAR_W) + 'px';
+  container.style.position = 'relative';
+  container.innerHTML = html;
+
+  const ganttScroll = document.getElementById('gantt-scroll');
+  const todayScrollPos = Math.max(0, SIDEBAR_W + todayOff * DAY_WIDTH - ganttScroll.clientWidth / 2);
+  setTimeout(() => ganttScroll.scrollLeft = todayScrollPos, 300);
+
+  initGanttTooltips();
+}
+
+function escAttr(str) {
+  if (!str) return '';
+  return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function initGanttTooltips() {
+  const tooltip = document.getElementById('gantt-tooltip');
+  const ttTitle = document.getElementById('tt-title');
+  const ttDate = document.getElementById('tt-date');
+  const ttDesc = document.getElementById('tt-desc');
+  const ttTag = document.getElementById('tt-tag');
+
+  document.querySelectorAll('.gantt-bar[data-tt-name]').forEach(bar => {
+    bar.addEventListener('mouseenter', () => {
+      const name = bar.getAttribute('data-tt-name');
+      const date = bar.getAttribute('data-tt-date');
+      const desc = bar.getAttribute('data-tt-desc');
+      const tag = bar.getAttribute('data-tt-tag');
+
+      ttTitle.textContent = name;
+      ttDate.textContent = date;
+      ttDesc.textContent = desc || '';
+      ttDesc.style.display = desc ? 'block' : 'none';
+
+      if (tag) {
+        ttTag.textContent = tag;
+        ttTag.style.display = 'inline-block';
+        if (tag === 'marco') {
+          ttTag.style.background = 'var(--marco-bg)';
+          ttTag.style.color = 'var(--marco-color)';
+        } else if (tag === 'A DEFINIR' || tag === 'adefinir') {
+          ttTag.style.background = 'var(--adefinir-bg)';
+          ttTag.style.color = 'var(--adefinir-color)';
+        } else {
+          ttTag.style.background = 'var(--aguardando-bg)';
+          ttTag.style.color = 'var(--aguardando-color)';
+        }
+      } else {
+        ttTag.style.display = 'none';
+      }
+
+      tooltip.classList.add('visible');
+    });
+
+    bar.addEventListener('mousemove', e => {
+      tooltip.style.left = (e.clientX + 12) + 'px';
+      tooltip.style.top = (e.clientY - 10) + 'px';
+    });
+
+    bar.addEventListener('mouseleave', () => {
+      tooltip.classList.remove('visible');
+    });
+  });
+}
+
+function renderTaskItem(card) {
+  const label = getCardLabel(card);
+  const isMarcCard = isMarco(card);
+  const isComplete = card.dueComplete === true;
+  const iconClass = isComplete ? 'complete' : (label || 'aguardando');
+  const iconSymbol = isComplete ? '✓' : (isMarcCard ? '◆' : '○');
+  const nameClass = isMarcCard ? 'is-marco' : (isComplete ? 'is-complete' : '');
+  const desc = stripMarkdown(card.desc);
+  const dateStr = card.due ? formatDate(card.due) : 'A definir';
+  const dateClass = card.due ? (isComplete ? 'complete' : '') : 'undefined';
+
+  const tagsList = (card.labels || []).filter(l => l.name).map(l => {
+    let cls = 'tag-aguardando';
+    if (l.name === CONFIG.labels.marcoName) cls = 'tag-marco';
+    else if (CONFIG.labels.marcoLabelRegex && CONFIG.labels.marcoLabelRegex.test(l.name)) cls = 'tag-marco';
+    else if (l.name === CONFIG.labels.tbdName) cls = 'tag-adefinir';
+    else if (l.name === CONFIG.labels.waitingName) cls = 'tag-aguardando';
+    return `<span class="tag ${cls}">${l.name}</span>`;
+  });
+  if (isComplete) tagsList.unshift('<span class="tag tag-complete">CONCLUÍDO</span>');
+  const tags = tagsList.join('');
+
+  return `
+    <div class="task-item ${isComplete ? 'task-complete' : ''}" data-label="${label || 'none'}">
+      <div class="task-icon ${iconClass}">${iconSymbol}</div>
+      <div class="task-content">
+        <div class="task-name ${nameClass}">${card.name}</div>
+        ${desc ? `<div class="task-desc">${desc}</div>` : ''}
+      </div>
+      <div class="task-tags">${tags}</div>
+      <div class="task-date ${dateClass}">${dateStr}</div>
+    </div>
+  `;
+}
+
+function filterSprints(filter) {
+  document.querySelectorAll('.task-item').forEach(item => {
+    if (filter === 'all') {
+      item.style.display = '';
+    } else if (filter === 'complete') {
+      item.style.display = item.classList.contains('task-complete') ? '' : 'none';
+    } else {
+      item.style.display = item.dataset.label === filter ? '' : 'none';
+    }
+  });
+}
+
+function initScrollObserver() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.animate-in, .sprint-section').forEach(el => observer.observe(el));
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
